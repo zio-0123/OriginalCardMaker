@@ -67,7 +67,6 @@
             box-sizing: border-box;
         }
         
-        /* ▼▼▼ 変更箇所 ▼▼▼ */
         /* Specific styles for each block */
         .card-number-block, .card-code-block {
             flex-shrink: 0;
@@ -99,7 +98,6 @@
             /* ふりがなの下に配置 */
             margin-top: -10px;
         }
-        /* ▲▲▲ 変更箇所 ▲▲▲ */
 
         /* カード画像のコンテナ */
         .card-image-container {
@@ -107,14 +105,27 @@
             background-color: #1a202c;
             border: 2px solid #080808;
             overflow: hidden;
-            min-height: 200px; /* 画像エリアの最小高さを確保 */
+            min-height: 200px;
+            position: relative; /* For image positioning */
         }
+        /* ▼▼▼ 変更箇所 ▼▼▼ */
         /* カード画像 */
-        .card-image {
+        #cardImagePreview {
+            position: absolute;
+            /* JSでのサイズ操作をやめ、CSSで基本サイズを決定 */
             width: 100%;
-            height: 100%;
-            object-fit: cover;
+            height: auto;
+            /* transformの基点を左上に設定 */
+            transform-origin: top left;
+            cursor: grab;
+            user-select: none; /* Disable text selection while dragging */
+            touch-action: none; /* Prevent default touch actions like scrolling */
         }
+        #cardImagePreview:active {
+            cursor: grabbing;
+        }
+        /* ▲▲▲ 変更箇所 ▲▲▲ */
+
         /* 効果テキストの枠線 */
         .effect-border {
             padding: 8px; /* 枠線の太さ */
@@ -167,11 +178,20 @@
                         <label for="cardImageInput" class="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">カード画像</label>
                         <input type="file" id="cardImageInput" accept="image/*" class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 dark:file:bg-blue-900 file:text-blue-700 dark:file:text-blue-300 hover:file:bg-blue-100 dark:hover:file:bg-blue-800">
                     </div>
+                    <!-- 画像調整機能 -->
+                    <div id="image-controls" class="space-y-4 hidden">
+                        <div>
+                            <label for="zoomSlider" class="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">ズーム</label>
+                            <input type="range" id="zoomSlider" min="1" max="3" step="0.01" value="1" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700">
+                        </div>
+                        <button id="resetImageBtn" class="w-full bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded-lg transition-colors duration-300 dark:bg-gray-600 dark:text-gray-200 dark:hover:bg-gray-500">
+                            位置をリセット
+                        </button>
+                    </div>
                     <div>
                         <label for="cardEffectInput" class="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">カード効果</label>
                         <textarea id="cardEffectInput" rows="5" class="w-full p-3 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg" placeholder="ここにカードの効果を入力します..."></textarea>
                     </div>
-                     <!-- New Color Picker -->
                     <div>
                         <label for="effectBorderColorInput" class="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">効果の枠色</label>
                         <input type="color" id="effectBorderColorInput" value="#2a6f97" class="w-full h-10 p-1 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg cursor-pointer">
@@ -206,7 +226,7 @@
                             
                             <!-- カード画像 -->
                             <div class="card-image-container">
-                                <img id="cardImagePreview" src="https://placehold.co/300x200/1a202c/ffffff?text=画像を選択" alt="カード画像プレビュー" class="card-image">
+                                <img id="cardImagePreview" src="https://placehold.co/300x200/1a202c/ffffff?text=画像を選択" alt="カード画像プレビュー">
                             </div>
                             
                             <!-- カード効果 -->
@@ -222,6 +242,20 @@
         </div>
     </div>
 
+    <!-- ダウンロード用モーダル -->
+    <div id="downloadModal" class="hidden fixed inset-0 bg-black bg-opacity-75 flex justify-center items-center p-4 z-50">
+        <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg text-center max-w-sm w-full">
+            <h3 class="text-xl font-bold mb-4 text-gray-800 dark:text-white">カードが完成しました！</h3>
+            <p class="text-gray-600 dark:text-gray-400 mb-4">下の画像を長押しして保存してください。</p>
+            <div class="border-4 border-gray-300 rounded-xl overflow-hidden">
+                <img id="generatedCardImage" src="" alt="生成されたカード" class="w-full">
+            </div>
+            <button id="closeModalBtn" class="mt-6 w-full bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded-lg transition-colors duration-300 dark:bg-gray-600 dark:text-gray-200 dark:hover:bg-gray-500">
+                閉じる
+            </button>
+        </div>
+    </div>
+
     <script>
         // DOM要素を取得
         const cardNameInput = document.getElementById('cardNameInput');
@@ -230,7 +264,7 @@
         const cardCodeInput = document.getElementById('cardCodeInput');
         const cardImageInput = document.getElementById('cardImageInput');
         const cardEffectInput = document.getElementById('cardEffectInput');
-        const effectBorderColorInput = document.getElementById('effectBorderColorInput'); // New
+        const effectBorderColorInput = document.getElementById('effectBorderColorInput');
         const downloadBtn = document.getElementById('downloadBtn');
 
         const cardNamePreview = document.getElementById('cardNamePreview');
@@ -239,8 +273,26 @@
         const cardCodePreview = document.getElementById('cardCodePreview');
         const cardImagePreview = document.getElementById('cardImagePreview');
         const cardEffectPreview = document.getElementById('cardEffectPreview');
-        const effectBorder = document.querySelector('.effect-border'); // New
+        const effectBorder = document.querySelector('.effect-border');
         const cardToSave = document.getElementById('card-preview');
+
+        // 画像調整機能のDOM要素と変数
+        const imageControls = document.getElementById('image-controls');
+        const zoomSlider = document.getElementById('zoomSlider');
+        const resetImageBtn = document.getElementById('resetImageBtn');
+        const imageContainer = document.querySelector('.card-image-container');
+
+        let isDragging = false;
+        let startX, startY;
+        let initialX, initialY;
+        let scale = 1;
+        let posX = 0;
+        let posY = 0;
+
+        // ダウンロード用モーダルのDOM要素
+        const downloadModal = document.getElementById('downloadModal');
+        const generatedCardImage = document.getElementById('generatedCardImage');
+        const closeModalBtn = document.getElementById('closeModalBtn');
 
         // --- イベントリスナーの設定 ---
         cardNameInput.addEventListener('input', () => {
@@ -258,8 +310,6 @@
         cardEffectInput.addEventListener('input', () => {
             cardEffectPreview.innerHTML = cardEffectInput.value.replace(/\n/g, '<br>') || 'ここにカードの効果が表示されます。';
         });
-
-        // New: 効果の枠線の色を変更
         effectBorderColorInput.addEventListener('input', (event) => {
             effectBorder.style.background = event.target.value;
         });
@@ -271,34 +321,148 @@
                 const reader = new FileReader();
                 reader.onload = (e) => {
                     cardImagePreview.src = e.target.result;
+                    imageControls.classList.remove('hidden');
+                    // 画像の読み込みが完了してからリセット処理を呼ぶ
+                    cardImagePreview.onload = () => {
+                        resetImageState();
+                    }
                 };
                 reader.readAsDataURL(file);
             }
         });
 
-        // ダウンロードボタンがクリックされた時の処理
+        // ▼▼▼ 変更箇所 ▼▼▼
+        // 画像調整機能の関数とイベントリスナー
+        function resetImageState() {
+            scale = 1;
+            posX = 0;
+            posY = 0;
+            zoomSlider.value = 1;
+            // リセット時に画像のスタイルも初期化
+            cardImagePreview.style.width = '100%';
+            cardImagePreview.style.height = 'auto';
+            // 中央揃えを再計算
+            updateImageTransform();
+        }
+
+        function updateImageTransform() {
+            // 画像の表示サイズを取得
+            const imageRect = cardImagePreview.getBoundingClientRect();
+            const containerRect = imageContainer.getBoundingClientRect();
+
+            // 拡大・縮小後のサイズを計算
+            const scaledWidth = imageRect.width * scale;
+            const scaledHeight = imageRect.height * scale;
+
+            // 境界チェック
+            let boundedX = posX;
+            let boundedY = posY;
+
+            // 画像がコンテナより大きい場合、はみ出さないようにする
+            if (scaledWidth > containerRect.width) {
+                if (boundedX > 0) boundedX = 0;
+                if (boundedX < containerRect.width - scaledWidth) {
+                    boundedX = containerRect.width - scaledWidth;
+                }
+            } else {
+                // 小さい場合は中央に配置
+                boundedX = (containerRect.width - scaledWidth) / 2;
+            }
+
+            if (scaledHeight > containerRect.height) {
+                 if (boundedY > 0) boundedY = 0;
+                if (boundedY < containerRect.height - scaledHeight) {
+                    boundedY = containerRect.height - scaledHeight;
+                }
+            } else {
+                boundedY = (containerRect.height - scaledHeight) / 2;
+            }
+            
+            // 最終的な位置を更新
+            posX = boundedX;
+            posY = boundedY;
+
+            // transformプロパティのみで位置とスケールを制御
+            cardImagePreview.style.transform = `translate(${posX}px, ${posY}px) scale(${scale})`;
+        }
+        // ▲▲▲ 変更箇所 ▲▲▲
+
+        zoomSlider.addEventListener('input', (e) => {
+            scale = parseFloat(e.target.value);
+            updateImageTransform();
+        });
+
+        resetImageBtn.addEventListener('click', resetImageState);
+
+        const startDrag = (clientX, clientY) => {
+            isDragging = true;
+            startX = clientX;
+            startY = clientY;
+            // transformから現在のtranslate値を取得するのは複雑なため、
+            // 最後の位置(posX, posY)を基準にする
+            initialX = posX;
+            initialY = posY;
+            cardImagePreview.style.cursor = 'grabbing';
+        };
+
+        const drag = (clientX, clientY) => {
+            if (!isDragging) return;
+            const dx = clientX - startX;
+            const dy = clientY - startY;
+            posX = initialX + dx;
+            posY = initialY + dy;
+            updateImageTransform();
+        };
+
+        const endDrag = () => {
+            isDragging = false;
+            cardImagePreview.style.cursor = 'grab';
+        };
+
+        // マウスイベント
+        cardImagePreview.addEventListener('mousedown', (e) => {
+            e.preventDefault();
+            startDrag(e.clientX, e.clientY);
+        });
+        window.addEventListener('mousemove', (e) => drag(e.clientX, e.clientY));
+        window.addEventListener('mouseup', endDrag);
+        
+        // タッチイベント
+        cardImagePreview.addEventListener('touchstart', (e) => {
+            if (e.touches.length === 1) {
+                startDrag(e.touches[0].clientX, e.touches[0].clientY);
+            }
+        }, { passive: true });
+        window.addEventListener('touchmove', (e) => {
+            if (isDragging && e.touches.length === 1) {
+                drag(e.touches[0].clientX, e.touches[0].clientY);
+            }
+        });
+        window.addEventListener('touchend', endDrag);
+
+        // ダウンロードボタンの処理
         downloadBtn.addEventListener('click', () => {
-            // html2canvasを使ってカードのプレビュー部分を画像に変換
+            const originalCursor = cardImagePreview.style.cursor;
+            cardImagePreview.style.cursor = 'default';
+
             html2canvas(cardToSave, { 
-                useCORS: true, // CORSを有効にして外部ドメインの画像を扱えるようにする
-                backgroundColor: null, // 背景を透明にする
-                scale: 2 // 解像度を2倍にして高画質化
+                useCORS: true,
+                backgroundColor: null,
+                scale: 2
             }).then(canvas => {
-                // キャンバスから画像データ(Data URL)を取得
-                const image = canvas.toDataURL('image/png');
-                
-                // ダウンロード用のリンクを作成
-                const link = document.createElement('a');
-                const cardName = cardNameInput.value.trim() || 'my-original-card';
-                link.download = `${cardName}.png`;
-                link.href = image;
-                
-                // リンクをクリックしてダウンロードを実行
-                link.click();
+                generatedCardImage.src = canvas.toDataURL('image/png');
+                downloadModal.classList.remove('hidden');
             }).catch(err => {
                 console.error('カードの画像化に失敗しました。', err);
                 alert('カードの画像化に失敗しました。コンソールを確認してください。');
+            }).finally(() => {
+                cardImagePreview.style.cursor = originalCursor;
             });
+        });
+
+        // モーダルを閉じる
+        closeModalBtn.addEventListener('click', () => {
+            downloadModal.classList.add('hidden');
         });
 
         // 初期表示の更新
