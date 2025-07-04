@@ -46,49 +46,68 @@
             flex-direction: column;
             gap: 4px; /* 各パーツ間の隙間 */
         }
-        /* カードヘッダー */
+        
+        /* カードヘッダー (IDパネル) */
         .card-header {
-            background-color: #EAE3D4; /* ヘッダーの背景色 */
+            background-color: #EAE3D4;
             border: 2px solid #080808;
-            border-radius: 5px;
+            border-radius: 2px;
             display: flex;
-            justify-content: space-between;
-            align-items: stretch; /* 子要素を縦に引き伸ばす */
-            padding: 0; /* パディングを削除し、子要素で制御 */
-            overflow: hidden; /* border-radiusを子要素に適用させるため */
+            align-items: stretch; /* Make blocks same height */
+            gap: 2px; /* Space between blocks */
+            padding: 3px; /* Padding around blocks */
+            min-height: 60px; /* 枠の高さを少し広げる */
         }
-        /* ヘッダーの区切り線 */
-        .header-separator {
-            width: 2px;
-            background-color: #080808;
-        }
-        .card-number, .card-code {
-            font-weight: bold;
-            font-size: 1.2rem;
-            color: #2D2D2D;
+
+        /* Common style for the three blocks */
+        .id-block {
+            border: 1px solid #080808;
+            border-radius: 4px;
             display: flex;
-            align-items: center;
-            padding: 4px 12px;
-            flex-shrink: 0;
-        }
-        .card-title-group {
-            text-align: center;
-            line-height: 1.1;
-            display: flex;
-            flex-direction: column;
             justify-content: center;
-            padding: 4px 10px;
-            flex-grow: 1; /* 中央の要素が残りのスペースを埋める */
+            align-items: center;
+            position: relative; /* For text positioning */
         }
+
+        /* ▼▼▼ 変更箇所 ▼▼▼ */
+        /* Specific styles for each block */
+        .card-number-block, .card-code-block {
+            padding: 0 12px;
+            flex-shrink: 0;
+            font-weight: bold;
+            font-size: 1.5rem;
+            color: #2D2D2D;
+            position: relative; /* 位置調整のため */
+            top: 0px; /* 数字を視覚的に中央に見せるため少し上に移動 */
+        }
+        /* ▲▲▲ 変更箇所 ▲▲▲ */
+
+        .card-title-block {
+            flex-grow: 1; /* Take remaining space */
+        }
+
         .card-furigana {
-            font-size: 0.7rem;
+            font-size: 0.65rem; /* 文字サイズを少し小さく */
             color: #555;
+            position: absolute;
+            left: 0;
+            right: 0;
+            bottom: 50%;
+            margin-bottom: 8px; /* 位置を微調整 */
+            text-align: center;
         }
         .card-name {
-            font-size: 1.3rem;
+            font-size: 1.2rem; /* 文字サイズを少し小さく */
             font-weight: bold;
             color: #2D2D2D;
+            position: absolute;
+            left: 0;
+            right: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            text-align: center;
         }
+
         /* カード画像のコンテナ */
         .card-image-container {
             flex-grow: 1;
@@ -103,7 +122,7 @@
             height: 100%;
             object-fit: cover;
         }
-        /* 効果テキストの枠線（マーブル模様） */
+        /* 効果テキストの枠線 */
         .effect-border {
             padding: 8px; /* 枠線の太さ */
             border: 2px solid #080808;
@@ -127,7 +146,7 @@
     <div class="container mx-auto p-4 lg:p-8">
         <header class="text-center mb-8">
             <h1 class="text-3xl lg:text-4xl font-bold text-gray-800 dark:text-white">オリジナルカードメーカー</h1>
-            <p class="text-gray-600 dark:text-gray-400 mt-2">あなただけのオリジナルカードを作成しましょう</p>
+            <p class="text-gray-600 dark:text-gray-400 mt-2">あなただけのオリジナルカードを作成しよう！</p>
         </header>
 
         <div class="flex flex-col lg:flex-row gap-8">
@@ -178,16 +197,18 @@
                 <div class="card-container">
                     <div id="card-preview" class="card card-preview-font">
                         <div class="card-content-wrapper">
-                            <!-- カードヘッダー -->
+                            <!-- カードヘッダー (IDパネル) -->
                             <div class="card-header">
-                                <span id="cardNumberPreview" class="card-number">1039</span>
-                                <div class="header-separator"></div>
-                                <div class="card-title-group">
+                                <div class="id-block card-number-block">
+                                    <span id="cardNumberPreview">1039</span>
+                                </div>
+                                <div class="id-block card-title-block">
                                     <div id="cardFuriganaPreview" class="card-furigana">アカンパニー</div>
                                     <div id="cardNamePreview" class="card-name">同行</div>
                                 </div>
-                                <div class="header-separator"></div>
-                                <span id="cardCodePreview" class="card-code">F-130</span>
+                                <div class="id-block card-code-block">
+                                    <span id="cardCodePreview">F-130</span>
+                                </div>
                             </div>
                             
                             <!-- カード画像 -->
