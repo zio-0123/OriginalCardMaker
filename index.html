@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>オリジナルカードメーカー</title>
+    <!-- Tailwind CSSを読み込み -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- html2canvasライブラリを読み込み (HTML要素を画像化するため) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <!-- Google Fontsからフォントを読み込み -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&family=Noto+Serif+JP:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        /* カスタムスタイル */
+        body {
+            font-family: 'Noto Sans JP', sans-serif;
+        }
+        .card-preview-font {
+            font-family: 'Noto Serif JP', serif;
+        }
+        /* カードのコンテナ */
+        .card-container {
+            width: 350px;
+            height: 500px;
+        }
+        /* カード本体のスタイル（二重枠線の外側） */
+        .card {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            background-color: #EAE3D4; /* 内側の枠線の色 */
+            border: 10px solid #080808; /* 外側の黒い枠線 */
+            border-radius: 20px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+            box-sizing: border-box;
+            padding: 4px; /* 内側の枠線の太さ */
+        }
+        /* カードコンテンツのラッパー */
+        .card-content-wrapper {
+            background-color: #2D2D2D; /* コンテンツエリアの背景色 */
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 4px; /* 各パーツ間の隙間 */
+        }
+        /* カードヘッダー */
+        .card-header {
+            background-color: #EAE3D4; /* ヘッダーの背景色 */
+            border: 2px solid #080808;
+            border-radius: 5px;
+            display: flex;
+            justify-content: space-between;
+            align-items: stretch; /* 子要素を縦に引き伸ばす */
+            padding: 0; /* パディングを削除し、子要素で制御 */
+            overflow: hidden; /* border-radiusを子要素に適用させるため */
+        }
+        /* ヘッダーの区切り線 */
+        .header-separator {
+            width: 2px;
+            background-color: #080808;
+        }
+        .card-number, .card-code {
+            font-weight: bold;
+            font-size: 1.2rem;
+            color: #2D2D2D;
+            display: flex;
+            align-items: center;
+            padding: 4px 12px;
+            flex-shrink: 0;
+        }
+        .card-title-group {
+            text-align: center;
+            line-height: 1.1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: 4px 10px;
+            flex-grow: 1; /* 中央の要素が残りのスペースを埋める */
+        }
+        .card-furigana {
+            font-size: 0.7rem;
+            color: #555;
+        }
+        .card-name {
+            font-size: 1.3rem;
+            font-weight: bold;
+            color: #2D2D2D;
+        }
+        /* カード画像のコンテナ */
+        .card-image-container {
+            flex-grow: 1;
+            background-color: #1a202c;
+            border: 2px solid #080808;
+            overflow: hidden;
+            min-height: 200px; /* 画像エリアの最小高さを確保 */
+        }
+        /* カード画像 */
+        .card-image {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        /* 効果テキストの枠線（マーブル模様） */
+        .effect-border {
+            padding: 8px; /* 枠線の太さ */
+            border: 2px solid #080808;
+            border-radius: 5px;
+            background: linear-gradient(165deg, #012a4a, #2a6f97 30%, #61a5c2 60%, #0d325c 80%, #013a63);
+        }
+        /* 効果テキストのボックス */
+        .card-effect-box {
+            height: 140px;
+            background-color: #D1D5DB; /* 効果ボックスの背景色 (ライトグレー) */
+            padding: 10px;
+            overflow-y: auto;
+            font-size: 0.9rem;
+            color: #2D2D2D;
+            width: 100%;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200">
+
+    <div class="container mx-auto p-4 lg:p-8">
+        <header class="text-center mb-8">
+            <h1 class="text-3xl lg:text-4xl font-bold text-gray-800 dark:text-white">オリジナルカードメーカー</h1>
+            <p class="text-gray-600 dark:text-gray-400 mt-2">あなただけのオリジナルカードを作成しましょう</p>
+        </header>
+
+        <div class="flex flex-col lg:flex-row gap-8">
+            <!-- 左側：入力フォーム -->
+            <div class="lg:w-1/3 bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg">
+                <h2 class="text-2xl font-bold mb-6 border-b pb-2 border-gray-200 dark:border-gray-700">カード情報</h2>
+                <div class="space-y-4">
+                    <div>
+                        <label for="cardNumberInput" class="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">カード番号 (左上)</label>
+                        <input type="text" id="cardNumberInput" class="w-full p-3 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg" placeholder="例：1039">
+                    </div>
+                     <div>
+                        <label for="cardFuriganaInput" class="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">ふりがな</label>
+                        <input type="text" id="cardFuriganaInput" class="w-full p-3 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg" placeholder="例：アカンパニー">
+                    </div>
+                    <div>
+                        <label for="cardNameInput" class="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">カード名</label>
+                        <input type="text" id="cardNameInput" class="w-full p-3 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg" placeholder="例：同行">
+                    </div>
+                    <div>
+                        <label for="cardCodeInput" class="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">カードコード (右上)</label>
+                        <input type="text" id="cardCodeInput" class="w-full p-3 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg" placeholder="例：F-130">
+                    </div>
+                    <div>
+                        <label for="cardImageInput" class="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">カード画像</label>
+                        <input type="file" id="cardImageInput" accept="image/*" class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 dark:file:bg-blue-900 file:text-blue-700 dark:file:text-blue-300 hover:file:bg-blue-100 dark:hover:file:bg-blue-800">
+                    </div>
+                    <div>
+                        <label for="cardEffectInput" class="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">カード効果</label>
+                        <textarea id="cardEffectInput" rows="5" class="w-full p-3 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg" placeholder="ここにカードの効果を入力します..."></textarea>
+                    </div>
+                     <!-- New Color Picker -->
+                    <div>
+                        <label for="effectBorderColorInput" class="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">効果の枠色</label>
+                        <input type="color" id="effectBorderColorInput" value="#2a6f97" class="w-full h-10 p-1 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg cursor-pointer">
+                    </div>
+                </div>
+                <div class="mt-8">
+                    <button id="downloadBtn" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-lg transition-colors duration-300 flex items-center justify-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                        画像として保存
+                    </button>
+                </div>
+            </div>
+
+            <!-- 右側：カードプレビュー -->
+            <div class="lg:w-2/3 flex justify-center items-center">
+                <div class="card-container">
+                    <div id="card-preview" class="card card-preview-font">
+                        <div class="card-content-wrapper">
+                            <!-- カードヘッダー -->
+                            <div class="card-header">
+                                <span id="cardNumberPreview" class="card-number">1039</span>
+                                <div class="header-separator"></div>
+                                <div class="card-title-group">
+                                    <div id="cardFuriganaPreview" class="card-furigana">アカンパニー</div>
+                                    <div id="cardNamePreview" class="card-name">同行</div>
+                                </div>
+                                <div class="header-separator"></div>
+                                <span id="cardCodePreview" class="card-code">F-130</span>
+                            </div>
+                            
+                            <!-- カード画像 -->
+                            <div class="card-image-container">
+                                <img id="cardImagePreview" src="https://placehold.co/300x200/1a202c/ffffff?text=画像を選択" alt="カード画像プレビュー" class="card-image">
+                            </div>
+                            
+                            <!-- カード効果 -->
+                            <div class="effect-border">
+                                <div class="card-effect-box">
+                                     <p id="cardEffectPreview">ここにカードの効果が表示されます。</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // DOM要素を取得
+        const cardNameInput = document.getElementById('cardNameInput');
+        const cardFuriganaInput = document.getElementById('cardFuriganaInput');
+        const cardNumberInput = document.getElementById('cardNumberInput');
+        const cardCodeInput = document.getElementById('cardCodeInput');
+        const cardImageInput = document.getElementById('cardImageInput');
+        const cardEffectInput = document.getElementById('cardEffectInput');
+        const effectBorderColorInput = document.getElementById('effectBorderColorInput'); // New
+        const downloadBtn = document.getElementById('downloadBtn');
+
+        const cardNamePreview = document.getElementById('cardNamePreview');
+        const cardFuriganaPreview = document.getElementById('cardFuriganaPreview');
+        const cardNumberPreview = document.getElementById('cardNumberPreview');
+        const cardCodePreview = document.getElementById('cardCodePreview');
+        const cardImagePreview = document.getElementById('cardImagePreview');
+        const cardEffectPreview = document.getElementById('cardEffectPreview');
+        const effectBorder = document.querySelector('.effect-border'); // New
+        const cardToSave = document.getElementById('card-preview');
+
+        // --- イベントリスナーの設定 ---
+        cardNameInput.addEventListener('input', () => {
+            cardNamePreview.textContent = cardNameInput.value || 'カード名';
+        });
+        cardFuriganaInput.addEventListener('input', () => {
+            cardFuriganaPreview.textContent = cardFuriganaInput.value || 'ふりがな';
+        });
+        cardNumberInput.addEventListener('input', () => {
+            cardNumberPreview.textContent = cardNumberInput.value || 'No.???';
+        });
+        cardCodeInput.addEventListener('input', () => {
+            cardCodePreview.textContent = cardCodeInput.value || 'CODE';
+        });
+        cardEffectInput.addEventListener('input', () => {
+            cardEffectPreview.innerHTML = cardEffectInput.value.replace(/\n/g, '<br>') || 'ここにカードの効果が表示されます。';
+        });
+
+        // New: 効果の枠線の色を変更
+        effectBorderColorInput.addEventListener('input', (event) => {
+            effectBorder.style.background = event.target.value;
+        });
+
+        // 画像ファイルが選択されたらプレビューを更新
+        cardImageInput.addEventListener('change', (event) => {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    cardImagePreview.src = e.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // ダウンロードボタンがクリックされた時の処理
+        downloadBtn.addEventListener('click', () => {
+            // html2canvasを使ってカードのプレビュー部分を画像に変換
+            html2canvas(cardToSave, { 
+                useCORS: true, // CORSを有効にして外部ドメインの画像を扱えるようにする
+                backgroundColor: null, // 背景を透明にする
+                scale: 2 // 解像度を2倍にして高画質化
+            }).then(canvas => {
+                // キャンバスから画像データ(Data URL)を取得
+                const image = canvas.toDataURL('image/png');
+                
+                // ダウンロード用のリンクを作成
+                const link = document.createElement('a');
+                const cardName = cardNameInput.value.trim() || 'my-original-card';
+                link.download = `${cardName}.png`;
+                link.href = image;
+                
+                // リンクをクリックしてダウンロードを実行
+                link.click();
+            }).catch(err => {
+                console.error('カードの画像化に失敗しました。', err);
+                alert('カードの画像化に失敗しました。コンソールを確認してください。');
+            });
+        });
+
+        // 初期表示の更新
+        cardEffectPreview.innerHTML = cardEffectInput.value.replace(/\n/g, '<br>') || 'ここにカードの効果が表示されます。';
+        cardNamePreview.textContent = cardNameInput.value || '同行';
+        cardFuriganaPreview.textContent = cardFuriganaInput.value || 'アカンパニー';
+        cardNumberPreview.textContent = cardNumberInput.value || '1039';
+        cardCodePreview.textContent = cardCodeInput.value || 'F-130';
+
+    </script>
+
+</body>
+</html>
