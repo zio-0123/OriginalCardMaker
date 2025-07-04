@@ -56,57 +56,50 @@
             align-items: stretch; /* Make blocks same height */
             gap: 2px; /* Space between blocks */
             padding: 3px; /* Padding around blocks */
-            min-height: 60px; /* 枠の高さを少し広げる */
+            min-height: 60px;
         }
 
         /* Common style for the three blocks */
         .id-block {
             border: 1px solid #080808;
             border-radius: 4px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            position: relative; /* For text positioning */
+            position: relative;
+            box-sizing: border-box;
         }
-
+        
         /* ▼▼▼ 変更箇所 ▼▼▼ */
         /* Specific styles for each block */
         .card-number-block, .card-code-block {
-            padding: 0 12px;
             flex-shrink: 0;
             font-weight: bold;
-            font-size: 1.5rem;
+            font-size: 1.3rem;
             color: #2D2D2D;
-            position: relative; /* 位置調整のため */
-            top: 0px; /* 数字を視覚的に中央に見せるため少し上に移動 */
+            text-align: center;
+            /* paddingで垂直位置を直接指定 */
+            padding-top: -6px; 
+            width: 80px; /* 幅を固定 */
         }
-        /* ▲▲▲ 変更箇所 ▲▲▲ */
 
         .card-title-block {
             flex-grow: 1; /* Take remaining space */
         }
-
+        
         .card-furigana {
-            font-size: 0.65rem; /* 文字サイズを少し小さく */
+            font-size: 0.65rem;
             color: #555;
-            position: absolute;
-            left: 0;
-            right: 0;
-            bottom: 50%;
-            margin-bottom: 8px; /* 位置を微調整 */
             text-align: center;
+            /* paddingで垂直位置を直接指定 */
+            padding-top: -2px;
         }
         .card-name {
-            font-size: 1.2rem; /* 文字サイズを少し小さく */
+            font-size: 1.2rem;
             font-weight: bold;
             color: #2D2D2D;
-            position: absolute;
-            left: 0;
-            right: 0;
-            top: 50%;
-            transform: translateY(-50%);
             text-align: center;
+            /* ふりがなの下に配置 */
+            margin-top: -10px;
         }
+        /* ▲▲▲ 変更箇所 ▲▲▲ */
 
         /* カード画像のコンテナ */
         .card-image-container {
