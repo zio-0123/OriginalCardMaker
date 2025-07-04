@@ -108,23 +108,19 @@
             min-height: 200px;
             position: relative; /* For image positioning */
         }
-        /* ▼▼▼ 変更箇所 ▼▼▼ */
         /* カード画像 */
         #cardImagePreview {
             position: absolute;
-            /* JSでのサイズ操作をやめ、CSSで基本サイズを決定 */
             width: 100%;
             height: auto;
-            /* transformの基点を左上に設定 */
             transform-origin: top left;
             cursor: grab;
-            user-select: none; /* Disable text selection while dragging */
-            touch-action: none; /* Prevent default touch actions like scrolling */
+            user-select: none;
+            touch-action: none;
         }
         #cardImagePreview:active {
             cursor: grabbing;
         }
-        /* ▲▲▲ 変更箇所 ▲▲▲ */
 
         /* 効果テキストの枠線 */
         .effect-border {
@@ -177,16 +173,6 @@
                     <div>
                         <label for="cardImageInput" class="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">カード画像</label>
                         <input type="file" id="cardImageInput" accept="image/*" class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 dark:file:bg-blue-900 file:text-blue-700 dark:file:text-blue-300 hover:file:bg-blue-100 dark:hover:file:bg-blue-800">
-                    </div>
-                    <!-- 画像調整機能 -->
-                    <div id="image-controls" class="space-y-4 hidden">
-                        <div>
-                            <label for="zoomSlider" class="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">ズーム</label>
-                            <input type="range" id="zoomSlider" min="1" max="3" step="0.01" value="1" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700">
-                        </div>
-                        <button id="resetImageBtn" class="w-full bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded-lg transition-colors duration-300 dark:bg-gray-600 dark:text-gray-200 dark:hover:bg-gray-500">
-                            位置をリセット
-                        </button>
                     </div>
                     <div>
                         <label for="cardEffectInput" class="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">カード効果</label>
@@ -277,17 +263,16 @@
         const cardToSave = document.getElementById('card-preview');
 
         // 画像調整機能のDOM要素と変数
-        const imageControls = document.getElementById('image-controls');
-        const zoomSlider = document.getElementById('zoomSlider');
-        const resetImageBtn = document.getElementById('resetImageBtn');
         const imageContainer = document.querySelector('.card-image-container');
-
         let isDragging = false;
         let startX, startY;
         let initialX, initialY;
         let scale = 1;
         let posX = 0;
         let posY = 0;
+        // ピンチ操作用
+        let initialDistance = 0;
+        let isPinching = false;
 
         // ダウンロード用モーダルのDOM要素
         const downloadModal = document.getElementById('downloadModal');
@@ -321,8 +306,6 @@
                 const reader = new FileReader();
                 reader.onload = (e) => {
                     cardImagePreview.src = e.target.result;
-                    imageControls.classList.remove('hidden');
-                    // 画像の読み込みが完了してからリセット処理を呼ぶ
                     cardImagePreview.onload = () => {
                         resetImageState();
                     }
@@ -330,76 +313,76 @@
                 reader.readAsDataURL(file);
             }
         });
-
-        // ▼▼▼ 変更箇所 ▼▼▼
-        // 画像調整機能の関数とイベントリスナー
+        
+        // ▼▼▼ 画像調整機能の関数とイベントリスナー ▼▼▼
         function resetImageState() {
             scale = 1;
             posX = 0;
             posY = 0;
-            zoomSlider.value = 1;
-            // リセット時に画像のスタイルも初期化
-            cardImagePreview.style.width = '100%';
-            cardImagePreview.style.height = 'auto';
-            // 中央揃えを再計算
             updateImageTransform();
         }
 
         function updateImageTransform() {
-            // 画像の表示サイズを取得
-            const imageRect = cardImagePreview.getBoundingClientRect();
             const containerRect = imageContainer.getBoundingClientRect();
+            // 画像の本来のサイズを取得
+            const naturalWidth = cardImagePreview.naturalWidth;
+            const naturalHeight = cardImagePreview.naturalHeight;
+            if (!naturalWidth || !naturalHeight) return;
 
-            // 拡大・縮小後のサイズを計算
-            const scaledWidth = imageRect.width * scale;
-            const scaledHeight = imageRect.height * scale;
-
-            // 境界チェック
-            let boundedX = posX;
-            let boundedY = posY;
-
-            // 画像がコンテナより大きい場合、はみ出さないようにする
-            if (scaledWidth > containerRect.width) {
-                if (boundedX > 0) boundedX = 0;
-                if (boundedX < containerRect.width - scaledWidth) {
-                    boundedX = containerRect.width - scaledWidth;
-                }
+            // コンテナに合わせて画像の基本サイズを計算 (object-fit: cover相当)
+            const containerRatio = containerRect.width / containerRect.height;
+            const imageRatio = naturalWidth / naturalHeight;
+            let baseWidth, baseHeight;
+            if (containerRatio > imageRatio) {
+                baseWidth = containerRect.width;
+                baseHeight = baseWidth / imageRatio;
             } else {
-                // 小さい場合は中央に配置
-                boundedX = (containerRect.width - scaledWidth) / 2;
-            }
-
-            if (scaledHeight > containerRect.height) {
-                 if (boundedY > 0) boundedY = 0;
-                if (boundedY < containerRect.height - scaledHeight) {
-                    boundedY = containerRect.height - scaledHeight;
-                }
-            } else {
-                boundedY = (containerRect.height - scaledHeight) / 2;
+                baseHeight = containerRect.height;
+                baseWidth = baseHeight * imageRatio;
             }
             
-            // 最終的な位置を更新
-            posX = boundedX;
-            posY = boundedY;
+            cardImagePreview.style.width = `${baseWidth}px`;
+            cardImagePreview.style.height = `${baseHeight}px`;
 
-            // transformプロパティのみで位置とスケールを制御
+            // 拡大・縮小後のサイズ
+            const scaledWidth = baseWidth * scale;
+            const scaledHeight = baseHeight * scale;
+
+            // 中央揃え
+            if (posX === 0 && posY === 0) {
+                 posX = (containerRect.width - scaledWidth) / 2;
+                 posY = (containerRect.height - scaledHeight) / 2;
+            }
+
+            // 境界チェック
+            if (posX > 0) posX = 0;
+            if (scaledWidth > containerRect.width && posX < containerRect.width - scaledWidth) {
+                posX = containerRect.width - scaledWidth;
+            }
+            if (posY > 0) posY = 0;
+            if (scaledHeight > containerRect.height && posY < containerRect.height - scaledHeight) {
+                posY = containerRect.height - scaledHeight;
+            }
+            
             cardImagePreview.style.transform = `translate(${posX}px, ${posY}px) scale(${scale})`;
         }
-        // ▲▲▲ 変更箇所 ▲▲▲
-
-        zoomSlider.addEventListener('input', (e) => {
-            scale = parseFloat(e.target.value);
+        
+        // マウスホイールでのズーム
+        imageContainer.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            const scaleAmount = e.deltaY * -0.001;
+            scale = Math.max(0.5, Math.min(scale + scaleAmount, 5)); // スケールの範囲を制限
             updateImageTransform();
         });
 
-        resetImageBtn.addEventListener('click', resetImageState);
+        const getDistance = (touch1, touch2) => {
+            return Math.hypot(touch1.pageX - touch2.pageX, touch1.pageY - touch2.pageY);
+        };
 
         const startDrag = (clientX, clientY) => {
             isDragging = true;
             startX = clientX;
             startY = clientY;
-            // transformから現在のtranslate値を取得するのは複雑なため、
-            // 最後の位置(posX, posY)を基準にする
             initialX = posX;
             initialY = posY;
             cardImagePreview.style.cursor = 'grabbing';
@@ -420,7 +403,7 @@
         };
 
         // マウスイベント
-        cardImagePreview.addEventListener('mousedown', (e) => {
+        imageContainer.addEventListener('mousedown', (e) => {
             e.preventDefault();
             startDrag(e.clientX, e.clientY);
         });
@@ -428,17 +411,35 @@
         window.addEventListener('mouseup', endDrag);
         
         // タッチイベント
-        cardImagePreview.addEventListener('touchstart', (e) => {
+        imageContainer.addEventListener('touchstart', (e) => {
             if (e.touches.length === 1) {
+                isPinching = false;
                 startDrag(e.touches[0].clientX, e.touches[0].clientY);
+            } else if (e.touches.length === 2) {
+                isDragging = false;
+                isPinching = true;
+                initialDistance = getDistance(e.touches[0], e.touches[1]);
             }
         }, { passive: true });
+
         window.addEventListener('touchmove', (e) => {
-            if (isDragging && e.touches.length === 1) {
+            if (isPinching && e.touches.length === 2) {
+                const newDistance = getDistance(e.touches[0], e.touches[1]);
+                const scaleAmount = (newDistance / initialDistance);
+                scale = Math.max(0.5, Math.min(scale * scaleAmount, 5));
+                initialDistance = newDistance; // 継続的なズームのため距離を更新
+                updateImageTransform();
+            } else if (isDragging && e.touches.length === 1) {
                 drag(e.touches[0].clientX, e.touches[0].clientY);
             }
         });
-        window.addEventListener('touchend', endDrag);
+
+        window.addEventListener('touchend', (e) => {
+            endDrag();
+            if (e.touches.length < 2) {
+                isPinching = false;
+            }
+        });
 
         // ダウンロードボタンの処理
         downloadBtn.addEventListener('click', () => {
